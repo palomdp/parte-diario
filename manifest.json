@@ -1,0 +1,14 @@
+{
+  "name": "Parte Diario de Obra",
+  "short_name": "Parte Diario",
+  "description": "Sistema de gestión de partes diarios de obra — Constructora Pablo Romero",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#f5a623",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
