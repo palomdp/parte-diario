@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Parte Diario de Obra</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root {
@@ -33,7 +33,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:0 16px;position:relative;z-index:50;
 }
 .header-logo{display:flex;align-items:center;gap:10px}
-.header-logo img{width:34px;height:34px;border-radius:5px;object-fit:cover}
+/* Logo CPR CSS */
+.logo-cpr {
+  background: white; color: black; width: 34px; height: 34px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 0;
+}
 .header-logo-text h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;letter-spacing:.5px;line-height:1}
 .header-logo-text p{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
 .header-right{display:flex;gap:8px;align-items:center}
@@ -132,10 +137,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .absent-tag{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--red);padding:5px 10px;border-radius:20px;font-size:12px;display:flex;align-items:center;gap:5px}
 
 .stock-row{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px}
-.stock-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.stock-cell{padding:8px;text-align:center;border-right:1px solid var(--border)}
-.stock-cell-label{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
-.stock-cell-val{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700}
 
 #toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:200;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -159,7 +160,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .stat-mini-num{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--accent);line-height:1}
 .stat-mini-label{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:3px}
 
-/* Selector de Obras Header */
 .header-obra-sel {
   background-color: var(--surface2); border: 1px solid var(--border); color: var(--accent);
   border-radius: 6px; padding: 4px 24px 4px 8px; font-size: 11px; max-width: 130px;
@@ -173,15 +173,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
   <div class="app-header">
     <div class="header-logo">
-      <img src="icon-192.png" alt="CPR">
+      <div class="logo-cpr">CPR</div>
       <div class="header-logo-text">
         <h1>PARTE DIARIO</h1>
         <p>Constructora Pablo Romero</p>
       </div>
     </div>
     <div class="header-right">
-      <select id="header-obra-sel" class="select header-obra-sel" onchange="cambiarObraActiva(this.value)">
-        </select>
+      <select id="header-obra-sel" class="select header-obra-sel" onchange="cambiarObraActiva(this.value)"></select>
       <div class="status-dot" id="status-dot" title="Estado de guardado"></div>
     </div>
   </div>
@@ -294,12 +293,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div>
 
       <div id="botones-accion" style="display:flex; gap:10px; margin-top:4px;">
-        <button class="btn btn-secondary" onclick="exportarYCompartirPDF()" style="flex:1; padding:15px; font-size:16px" title="Generar PDF y Compartir">
-          📄 PDF
-        </button>
-        <button class="btn btn-primary" onclick="saveParte()" style="flex:2; padding:15px; font-size:16px">
-          💾 Guardar
-        </button>
+        <button class="btn btn-secondary" onclick="exportarYCompartirPDF()" style="flex:1; padding:15px; font-size:16px" title="Generar PDF y Compartir">📄 PDF</button>
+        <button class="btn btn-primary" onclick="saveParte()" style="flex:2; padding:15px; font-size:16px">💾 Guardar</button>
       </div>
       <div style="height:8px"></div>
     </div>
@@ -453,7 +448,6 @@ function dbGet(s,k){ return new Promise(r=>{ const req=db.transaction(s,'readonl
 (async ()=>{
   await openDB();
   
-  // Cargar lista de obras
   const list = await dbGet('config', 'obrasList');
   if(list && list.value && list.value.length > 0) obrasList = list.value;
   
@@ -469,7 +463,6 @@ function dbGet(s,k){ return new Promise(r=>{ const req=db.transaction(s,'readonl
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
 
-// ══════════ GESTIÓN DE OBRAS ══════════
 function renderSelectorObras() {
   const sel = document.getElementById('header-obra-sel');
   sel.innerHTML = obrasList.map(o => `<option value="${o.id}">${o.nombre}</option>`).join('');
@@ -493,23 +486,21 @@ async function cambiarObraActiva(id) {
   activeObraId = id;
   await dbPut('config', { key: 'activeObraId', value: id });
   await cargarDatosObraActiva(id);
-  newParte(); // Resetea el formulario
+  newParte();
   goScreen('editor');
   toast('Obra seleccionada');
 }
 
 async function cargarDatosObraActiva(id) {
-  // Cargar Config
   const prev = await dbGet('config', 'previstos_' + id);
   PREVISTOS = prev ? prev.value : JSON.parse(JSON.stringify(PREVISTOS_DEFAULT));
   
   const cfgO = await dbGet('config', 'configObra_' + id);
   configObra = cfgO ? cfgO.value : {};
   
-  // Cargar y filtrar Partes
   const allPartes = await dbGetAll('partes');
   partes = allPartes.filter(p => {
-    if(!p.obra_id) p.obra_id = 'obra_default'; // Migración de datos viejos
+    if(!p.obra_id) p.obra_id = 'obra_default';
     return p.obra_id === id;
   });
   partes.sort((a,b)=>Number(b.parte_num)-Number(a.parte_num));
@@ -524,46 +515,56 @@ async function exportarYCompartirPDF() {
   const editor = document.getElementById('screen-editor');
   const btnGroup = document.getElementById('botones-accion');
   
-  // Ocultar botones temporalmente
   btnGroup.style.display = 'none';
-  
-  // Expandir todas las tarjetas para que sean visibles en el PDF
   editor.querySelectorAll('.card').forEach(c => c.classList.remove('collapsed'));
+
+  // Esencial para evitar el recorte en dispositivos móviles
+  const prevPosition = editor.style.position;
+  const prevOverflow = editor.style.overflow;
+  const prevHeight = editor.style.height;
+  editor.style.position = 'relative';
+  editor.style.overflow = 'visible';
+  editor.style.height = 'auto';
 
   const numeroParte = document.getElementById('parte_num').value || 'S_N';
   const opciones = {
-    margin: 5,
+    margin: [10, 5, 10, 5],
     filename: `Parte_Diario_${numeroParte}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
-    toast('Generando PDF...');
-    // Generar archivo Blob
-    const pdfBlob = await html2pdf().set(opciones).from(editor).outputPdf('blob');
-    const archivo = new File([pdfBlob], opciones.filename, { type: "application/pdf" });
-
-    // Intentar compartir de forma nativa (WhatsApp/Mail)
-    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-      await navigator.share({
-        files: [archivo],
-        title: 'Parte Diario',
-        text: 'Se adjunta el parte diario correspondiente.'
-      });
-      toast('✓ Compartido');
+    toast('Generando PDF, por favor espere...');
+    const pdfWorker = html2pdf().set(opciones).from(editor);
+    
+    if (navigator.canShare) {
+      const pdfBlob = await pdfWorker.outputPdf('blob');
+      const archivo = new File([pdfBlob], opciones.filename, { type: "application/pdf" });
+      if (navigator.canShare({ files: [archivo] })) {
+        await navigator.share({
+          files: [archivo],
+          title: `Parte Diario #${numeroParte}`,
+          text: 'Se adjunta el parte diario correspondiente de Constructora Pablo Romero.'
+        });
+        toast('✓ Compartido exitosamente');
+      } else {
+        await pdfWorker.save();
+        toast('✓ PDF descargado');
+      }
     } else {
-      // Si está en PC, descargarlo automáticamente
-      html2pdf().set(opciones).from(editor).save();
+      await pdfWorker.save();
       toast('✓ PDF descargado');
     }
   } catch (error) {
     console.error(error);
-    toast('Error al procesar PDF');
+    toast('Error al generar el documento PDF');
   } finally {
-    // Restaurar botones
     btnGroup.style.display = 'flex';
+    editor.style.position = prevPosition;
+    editor.style.overflow = prevOverflow;
+    editor.style.height = prevHeight;
   }
 }
 
@@ -624,11 +625,11 @@ function updateStockUI(){
   const cont=document.getElementById('stock-display'); cont.innerHTML='';
   stockItems.forEach((s,i)=>{
     const div=document.createElement('div'); div.className='stock-row';
-    div.innerHTML=`<div style="display:flex;gap:10px;margin-bottom:8px"><input class="input" value="${s.desc}" onchange="stockItems[${i}].desc=this.value" placeholder="Material" style="flex:1"><input class="input" type="number" value="${s.stockAnt}" onchange="stockItems[${i}].stockAnt=Number(this.value);updateStock()" style="width:80px"><button class="btn btn-danger btn-sm" onclick="stockItems.splice(${i},1);updateStock()">✕</button></div>`;
+    div.innerHTML=`<div style="display:flex;gap:10px;margin-bottom:8px"><input class="input" value="${s.desc}" onchange="stockItems[${i}].desc=this.value;updateStock()" placeholder="Material" style="flex:1"><input class="input" type="number" value="${s.stockAnt}" onchange="stockItems[${i}].stockAnt=Number(this.value);updateStock()" style="width:80px"><button class="btn btn-danger btn-sm" onclick="stockItems.splice(${i},1);updateStock()">✕</button></div>`;
     cont.appendChild(div);
   });
 }
-function updateStock(){ updateStockUI(); }
+function updateStock(){ updateStockUI(); setDirty(true); }
 function addAusente(){ const i=document.getElementById('ausente-input'); if(i.value){ ausentes.push(i.value); i.value=''; document.getElementById('ausentes-list').innerHTML=ausentes.map((a,idx)=>`<div class="absent-tag">${a}<button onclick="ausentes.splice(${idx},1);this.parentElement.remove()">×</button></div>`).join(''); setDirty(true);} }
 function selWeather(el,v){ document.querySelectorAll('.weather-opt').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); document.getElementById('estado_tiempo').value=v; setDirty(true); }
 
@@ -676,10 +677,10 @@ function newParteFromLast(){
   document.getElementById('parte_responsable').value = last.responsable||'';
   (last.personal||[]).forEach(p=>{ const r=[...p]; r[2]='Presente'; addDynRow('personal',r); });
   (last.equipos||[]).forEach(e=>addDynRow('equipos',e));
-  toast('Creado desde anterior');
+  toast('Creado desde el registro anterior');
 }
 
-// ══════════ HISTORIAL & AVANCE & CONFIG ══════════
+// ══════════ HISTORIAL ══════════
 function buildHistorial(){
   document.getElementById('stat-total').textContent=partes.length;
   document.getElementById('partes-list').innerHTML=partes.map(p=>`
@@ -698,27 +699,135 @@ function loadData(id){
 }
 
 async function deleteP(id){
-  await confirmResolve(false); // Resetea modal
+  await confirmResolve(false);
   document.getElementById('confirm-modal').classList.add('open');
   confirmResolve = async (v)=>{
     document.getElementById('confirm-modal').classList.remove('open');
     if(!v) return;
-    await dbDelete('partes', id); partes = partes.filter(p=>p.id!==id); buildHistorial(); toast('Eliminado');
+    await dbDelete('partes', id); partes = partes.filter(p=>p.id!==id); buildHistorial(); toast('Registro eliminado');
   };
 }
 
-function buildAvance(){ /* Lógica de avance simplificada por espacio */ }
-function loadConfigPanel(){
-  document.getElementById('cfg_obra').value = configObra.obra||'';
-  document.getElementById('cfg_cliente').value = configObra.cliente||'';
-}
-async function saveConfig(){
-  configObra = { obra:document.getElementById('cfg_obra').value, cliente:document.getElementById('cfg_cliente').value };
-  await dbPut('config',{key:'configObra_'+activeObraId, value:configObra});
-  toast('Configuración guardada para obra actual');
+// ══════════ AVANCE DE OBRA COMPLETADO ══════════
+function buildAvance(){
+  const acum={'50':0,'63':0,'90':0,'125':0};
+  const detalles=[];
+
+  partes.forEach(p=>{
+    const hoy={'50':0,'63':0,'90':0,'125':0};
+    (p.instalaciones||[]).forEach(row=>{
+      const desc=(row[0]||'').replace(/[^0-9]/g,' ');
+      let diam=null;
+      if(/\b125\b/.test(desc)) diam='125';
+      else if(/\b90\b/.test(desc)) diam='90';
+      else if(/\b63\b/.test(desc)) diam='63';
+      else if(/\b50\b/.test(desc)) diam='50';
+      
+      const qty=parseFloat(row[1])||0;
+      if(diam&&qty){acum[diam]+=qty; hoy[diam]+=qty;}
+    });
+    detalles.push({parte_num:p.parte_num, fecha:p.fecha, hoy:{...hoy}, totalHoy:Object.values(hoy).reduce((s,v)=>s+v,0)});
+  });
+
+  document.getElementById('avance-cards').innerHTML=Object.entries(PREVISTOS).map(([k,cfg])=>{
+    const inst=acum[k]||0; const pct=cfg.total>0?Math.min(100,inst/cfg.total*100):0;
+    const col=pct>=100?'#2ecc71':pct>=75?'#27ae60':pct>=50?'#f5a623':pct>=25?'#e67e22':'#e74c3c';
+    return`<div class="avance-card">
+      <div class="avance-header">
+        <div class="avance-label">${cfg.label}</div>
+        <div class="avance-pct" style="color:${col}">${pct.toFixed(1)}%</div>
+      </div>
+      <div class="avance-bar-bg"><div class="avance-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="avance-nums">
+        <span>Instalado: <strong>${inst.toLocaleString('es-AR')} m</strong></span>
+        <span>Previsto: <strong>${cfg.total.toLocaleString('es-AR')} m</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const tbody=document.getElementById('avance-tbody');
+  tbody.innerHTML=detalles.map(d=>`<tr>
+    <td style="padding:10px;border-bottom:1px solid var(--border)">#${d.parte_num}</td>
+    <td style="padding:10px;border-bottom:1px solid var(--border)">${fmtDate(d.fecha)}</td>
+    <td style="padding:10px;text-align:right;border-bottom:1px solid var(--border)">${d.hoy['50']||'—'}</td>
+    <td style="padding:10px;text-align:right;border-bottom:1px solid var(--border)">${d.hoy['63']||'—'}</td>
+    <td style="padding:10px;text-align:right;border-bottom:1px solid var(--border)">${d.hoy['90']||'—'}</td>
+    <td style="padding:10px;text-align:right;border-bottom:1px solid var(--border)">${d.hoy['125']||'—'}</td>
+    <td style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-weight:bold">${d.totalHoy||'—'}</td>
+  </tr>`).join('');
 }
 
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+// ══════════ LÓGICA DE CONFIGURACIÓN COMPLETADA ══════════
+function addCfgCanieria(){ addCfgRowWith('','Cañería PEAD Ø ___mm',0,'#f5a623'); }
+
+function addCfgRowWith(key,label,total,color){
+  const cont=document.getElementById('cfg-canierias');
+  const div=document.createElement('div'); div.className='cfg-row'; div.dataset.key=key;
+
+  const hdr=document.createElement('div'); hdr.className='cfg-row-header';
+  const dot=document.createElement('div'); dot.className='cfg-color-dot'; dot.style.background=color;
+  const descInp=document.createElement('input'); descInp.type='text'; descInp.value=label;
+  descInp.className='input'; descInp.style.cssText='flex:1;font-size:14px;padding:8px 10px';
+  const del=document.createElement('button'); del.className='btn btn-danger'; del.textContent='✕'; del.style.cssText='padding:6px 10px;flex-shrink:0';
+  del.onclick=()=>div.remove();
+  hdr.appendChild(dot); hdr.appendChild(descInp); hdr.appendChild(del);
+
+  const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:10px;margin-top:10px';
+  const totalInp=document.createElement('input'); totalInp.type='number'; totalInp.value=total; totalInp.min=0;
+  totalInp.className='input'; totalInp.style.cssText='flex:1;font-size:16px;font-weight:700;color:var(--accent);padding:8px 10px';
+  const unitLbl=document.createElement('span'); unitLbl.textContent='m'; unitLbl.style.cssText='color:var(--muted);font-size:14px';
+  const colorInp=document.createElement('input'); colorInp.type='color'; colorInp.value=color;
+  colorInp.style.cssText='width:40px;height:38px;border:none;border-radius:6px;cursor:pointer;padding:0;background:none';
+  colorInp.addEventListener('input',()=>dot.style.background=colorInp.value);
+  row.appendChild(totalInp); row.appendChild(unitLbl); row.appendChild(colorInp);
+
+  div.appendChild(hdr); div.appendChild(row);
+  cont.appendChild(div);
+
+  div._getLabel=()=>descInp.value;
+  div._getTotal=()=>parseFloat(totalInp.value)||0;
+  div._getColor=()=>colorInp.value;
+}
+
+function loadConfigPanel(){
+  const cont=document.getElementById('cfg-canierias');
+  cont.innerHTML='';
+  Object.entries(PREVISTOS).forEach(([k,cfg])=>addCfgRowWith(k,cfg.label,cfg.total,cfg.color));
+  
+  document.getElementById('cfg_obra').value = configObra.obra||'';
+  document.getElementById('cfg_cliente').value = configObra.cliente||'';
+  document.getElementById('cfg_inicio').value = configObra.inicio||'';
+  document.getElementById('cfg_fin').value = configObra.fin||'';
+  document.getElementById('cfg_responsable').value = configObra.responsable||'';
+}
+
+async function saveConfig(){
+  const newPrevistos={};
+  document.querySelectorAll('#cfg-canierias .cfg-row').forEach(div=>{
+    const label=(div._getLabel&&div._getLabel())||'';
+    const total=(div._getTotal&&div._getTotal())||0;
+    const color=(div._getColor&&div._getColor())||'#f5a623';
+    if(!label) return;
+    const diam=label.match(/\d+/) ? label.match(/\d+/)[0] : label.toLowerCase().replace(/\s+/g,'_').slice(0,20);
+    newPrevistos[diam]={label,total,color};
+  });
+
+  if(!Object.keys(newPrevistos).length){ toast('⚠️ Agregue al menos un material'); return; }
+  PREVISTOS=newPrevistos;
+  await dbPut('config',{key:'previstos_'+activeObraId, value:PREVISTOS});
+
+  configObra = {
+    obra:document.getElementById('cfg_obra').value,
+    cliente:document.getElementById('cfg_cliente').value,
+    inicio:document.getElementById('cfg_inicio').value,
+    fin:document.getElementById('cfg_fin').value,
+    responsable:document.getElementById('cfg_responsable').value
+  };
+  await dbPut('config',{key:'configObra_'+activeObraId, value:configObra});
+  toast('✓ Configuración guardada correctamente');
+}
+
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 let confirmResolve = (v)=>{};
 </script>
 </body>
