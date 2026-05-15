@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#f5a623">
+<meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -33,14 +33,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   padding:0 16px;position:relative;z-index:50;
 }
 .header-logo{display:flex;align-items:center;gap:10px}
+
 /* Logo CPR CSS */
 .logo-cpr {
-  background: white; color: black; width: 34px; height: 34px; border-radius: 5px;
+  background: #ffffff; color: #000000; width: 36px; height: 36px; border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 0;
+  font-weight: 900; font-family: 'Barlow Condensed', sans-serif; font-size: 17px;
 }
-.header-logo-text h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;letter-spacing:.5px;line-height:1}
-.header-logo-text p{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+
+.header-logo-text h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;letter-spacing:.5px;line-height:1;margin-bottom:2px;}
+.header-logo-text p{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .header-right{display:flex;gap:8px;align-items:center}
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .status-dot.saved{background:var(--green)}
@@ -199,7 +201,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
             <div class="field"><label class="label">Fecha</label><input class="input" type="date" id="parte_fecha"></div>
           </div>
           <div class="field"><label class="label">Obra</label><input class="input" type="text" id="parte_obra" placeholder="Ej: 278 - OLAS - RED INTERNA"></div>
-          <div class="field"><label class="label">Responsable</label><input class="input" type="text" id="parte_responsable"></div>
+          <div class="field"><label class="label">Responsable</label><input class="input" type="text" id="parte_responsable" value="Agustín Ballarre"></div>
           <div class="field">
             <label class="label">Estado</label>
             <select class="select" id="parte_estado">
@@ -286,7 +288,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div class="card-header" onclick="toggleCard('c-obs')"><div class="card-title">📝 Observaciones y Firmas</div><span class="chevron">▼</span></div>
         <div class="card-body">
           <div class="field"><label class="label">Observaciones generales</label><textarea class="textarea" id="observaciones"></textarea></div>
-          <div class="field"><label class="label">Firma responsable</label><input class="input" type="text" id="firma_responsable"></div>
+          <div class="field"><label class="label">Firma responsable</label><input class="input" type="text" id="firma_responsable" value="Agustín Ballarre"></div>
           <div class="field"><label class="label">Firma receptor</label><input class="input" type="text" id="firma_receptor"></div>
           <div class="field"><label class="label">Fecha de recepción</label><input class="input" type="date" id="fecha_recepcion"></div>
         </div>
@@ -447,16 +449,13 @@ function dbGet(s,k){ return new Promise(r=>{ const req=db.transaction(s,'readonl
 
 (async ()=>{
   await openDB();
-  
   const list = await dbGet('config', 'obrasList');
   if(list && list.value && list.value.length > 0) obrasList = list.value;
-  
   const active = await dbGet('config', 'activeObraId');
   if(active) activeObraId = active.value;
   
   renderSelectorObras();
   await cargarDatosObraActiva(activeObraId);
-  
   document.getElementById('parte_fecha').value = today();
   setDirty(false);
 })();
@@ -475,7 +474,6 @@ async function crearNuevaObra() {
   const id = 'obra_' + Date.now();
   obrasList.push({ id, nombre: nom });
   await dbPut('config', { key: 'obrasList', value: obrasList });
-  
   document.getElementById('nueva_obra_nombre').value = '';
   renderSelectorObras();
   cambiarObraActiva(id);
@@ -510,51 +508,181 @@ async function cargarDatosObraActiva(id) {
   if(currentScreen === 'config') loadConfigPanel();
 }
 
-// ══════════ GENERACIÓN DE PDF Y COMPARTIR ══════════
-async function exportarYCompartirPDF() {
-  const editor = document.getElementById('screen-editor');
-  const btnGroup = document.getElementById('botones-accion');
+// ══════════ GENERACIÓN DE DOCUMENTO Y PDF ══════════
+function generarTemplatePDF(d) {
+  // Calculo de Avance Acumulado para el PDF
+  const acum = {'50':0,'63':0,'90':0,'125':0};
+  partes.forEach(p => {
+    if (p.id === d.id) return; // No sumar el actual dos veces si ya está guardado
+    (p.instalaciones||[]).forEach(r => {
+      const diam = detectDiam(r[0]);
+      if(diam && r[1]) acum[diam] += parseFloat(r[1]);
+    });
+  });
+  (d.instalaciones||[]).forEach(r => {
+      const diam = detectDiam(r[0]);
+      if(diam && r[1]) acum[diam] += parseFloat(r[1]);
+  });
+
+  const rowTr = (arr) => `<tr>${arr.map(c=>`<td>${c||''}</td>`).join('')}</tr>`;
   
+  return `
+    <div style="font-family: 'Barlow', Arial, sans-serif; color: #000; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box; background: white; font-size: 12px;">
+      
+      <table style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+        <tr>
+          <td style="width: 60px;">
+            <div style="width:45px;height:45px;background:#fff;color:#000;border:2px solid #000;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;font-family:'Barlow Condensed',sans-serif;">CPR</div>
+          </td>
+          <td>
+            <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 20px;">CONSTRUCTORA PABLO ROMERO</h2>
+            <div style="font-size: 11px; margin-top: 4px;">PARTE DIARIO DE OBRA</div>
+          </td>
+          <td style="text-align: right; font-size: 12px; line-height: 1.4;">
+            <strong>PARTE N°:</strong> ${d.parte_num}<br>
+            <strong>FECHA:</strong> ${fmtDate(d.fecha)}<br>
+            <span style="font-size:10px;color:#555;">Impreso: ${fmtDate(today())}</span>
+          </td>
+        </tr>
+      </table>
+
+      <div style="margin-bottom: 15px; display:flex; gap: 40px; font-size: 13px;">
+        <div><strong>OBRA:</strong> ${d.obra||'—'}</div>
+        <div><strong>RESPONSABLE:</strong> ${d.responsable||'—'}</div>
+      </div>
+
+      <style>
+        .p-tbl { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px; }
+        .p-tbl th, .p-tbl td { border: 1px solid #000; padding: 5px; text-align: left; }
+        .p-tbl th { background-color: #f0f0f0; font-weight: bold; }
+        .p-title { font-weight: bold; background-color: #e0e0e0; padding: 5px; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; border: 1px solid #000; }
+        .p-section { margin-bottom: 15px; }
+      </style>
+
+      <div class="p-section">
+        <div class="p-title">TAREAS DESARROLLADAS</div>
+        <div style="padding: 5px; border: 1px solid #000; min-height: 40px; white-space: pre-wrap;">${d.tareas_desc||'—'}</div>
+      </div>
+
+      ${(d.instalaciones&&d.instalaciones.length) ? `
+      <div class="p-section">
+        <div class="p-title">INSTALADO HOY</div>
+        <table class="p-tbl">
+          <tr><th>Descripción</th><th>Cant.</th><th>Unidad</th><th>Sector</th></tr>
+          ${d.instalaciones.map(r=>rowTr(r)).join('')}
+        </table>
+      </div>` : ''}
+
+      <div class="p-section">
+        <div class="p-title">PERSONAL (${d.hs_trabajadas||8} hs)</div>
+        <table class="p-tbl">
+          <tr><th>Nombre</th><th>Función</th><th>Empresa</th><th>Estado</th></tr>
+          ${(d.personal||[]).map(r=>`<tr><td>${r[0]||''}</td><td>${r[1]||''}</td><td>${r[3]||''}</td><td>${r[2]||''}</td></tr>`).join('')}
+        </table>
+        ${(d.ausentes&&d.ausentes.length) ? `<div style="font-size:11px; margin-top:5px;"><strong>Ausentes:</strong> ${d.ausentes.join(', ')}</div>` : ''}
+      </div>
+
+      ${(d.equipos&&d.equipos.length) ? `
+      <div class="p-section">
+        <div class="p-title">EQUIPOS Y MAQUINARIA</div>
+        <table class="p-tbl">
+          <tr><th>Equipo / Código</th><th>Descripción</th><th>Hs.</th><th>Estado / Obs.</th></tr>
+          ${d.equipos.map(r=>rowTr(r)).join('')}
+        </table>
+      </div>` : ''}
+
+      ${(d.stock&&d.stock.length) ? `
+      <div class="p-section">
+        <div class="p-title">MATERIAL UTILIZADO HOY Y MOVIMIENTO DE STOCK</div>
+        <table class="p-tbl">
+          <tr><th>Descripción</th><th>Stock Ant.</th><th>Usado Hoy</th><th>Stock Actual</th><th>Unidad</th></tr>
+          ${d.stock.map(s=>`<tr><td>${s.desc}</td><td>${s.stockAnt}</td><td>${s.usadoHoy}</td><td>${s.stockActual}</td><td>${s.unidad}</td></tr>`).join('')}
+        </table>
+      </div>` : ''}
+
+      <div class="p-section">
+        <div class="p-title">AVANCE ACUMULADO DE CAÑERÍAS (hasta Parte #${d.parte_num})</div>
+        <table class="p-tbl">
+          <tr><th>Cañería</th><th>Instalado</th><th>Previsto</th><th>% Avance</th></tr>
+          ${Object.entries(PREVISTOS).map(([k,cfg])=>{
+            const inst = acum[k]||0;
+            const pct = cfg.total>0 ? (inst/cfg.total*100).toFixed(1) : 0;
+            return `<tr><td>${cfg.label}</td><td>${inst.toLocaleString('es-AR')} m</td><td>${cfg.total.toLocaleString('es-AR')} m</td><td>${pct}%</td></tr>`;
+          }).join('')}
+        </table>
+      </div>
+
+      <div class="p-section">
+        <table style="width:100%; font-size:11px; border-collapse: collapse;">
+          <tr>
+            <td style="width:50%; vertical-align:top; border:1px solid #000; padding:5px;">
+              <strong>ESTADO DEL TIEMPO:</strong> ${d.estado_tiempo||'—'}<br>
+              ${d.tiempo_obs||''}
+            </td>
+            <td style="width:50%; vertical-align:top; border:1px solid #000; padding:5px;">
+              <strong>OBRADOR:</strong><br>
+              ${d.obrador_desc||'—'}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="p-section">
+        <div class="p-title">OBSERVACIONES</div>
+        <div style="padding: 5px; border: 1px solid #000; min-height: 40px; white-space: pre-wrap;">${d.observaciones||'—'}</div>
+      </div>
+
+      <div style="margin-top: 50px; display: flex; justify-content: space-between; text-align: center; padding: 0 40px;">
+        <div style="width: 220px;">
+          <div style="border-bottom: 1px solid #000; height: 40px;"></div>
+          <div style="margin-top: 5px; font-weight: bold; font-size: 11px;">FIRMA RESPONSABLE</div>
+          <div style="font-size: 12px;">${d.firma_responsable||'—'}</div>
+        </div>
+        <div style="width: 220px;">
+          <div style="border-bottom: 1px solid #000; height: 40px;"></div>
+          <div style="margin-top: 5px; font-weight: bold; font-size: 11px;">FIRMA RECEPTOR</div>
+          <div style="font-size: 12px;">${d.firma_receptor||'—'}</div>
+          <div style="font-size: 11px;">Fecha: ${fmtDate(d.fecha_recepcion)}</div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+async function exportarYCompartirPDF() {
+  const data = collectData();
+  const htmlTemplate = generarTemplatePDF(data);
+
+  // Crear un contenedor invisible en memoria para que html2pdf lo procese como documento
+  const printDiv = document.createElement('div');
+  printDiv.innerHTML = htmlTemplate;
+
+  const btnGroup = document.getElementById('botones-accion');
   btnGroup.style.display = 'none';
-  editor.querySelectorAll('.card').forEach(c => c.classList.remove('collapsed'));
 
-  // Esencial para evitar el recorte en dispositivos móviles
-  const prevPosition = editor.style.position;
-  const prevOverflow = editor.style.overflow;
-  const prevHeight = editor.style.height;
-  editor.style.position = 'relative';
-  editor.style.overflow = 'visible';
-  editor.style.height = 'auto';
-
-  const numeroParte = document.getElementById('parte_num').value || 'S_N';
   const opciones = {
-    margin: [10, 5, 10, 5],
-    filename: `Parte_Diario_${numeroParte}.pdf`,
+    margin: [10, 10, 10, 10],
+    filename: `Parte_Diario_${data.parte_num||'S_N'}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+    html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
-    toast('Generando PDF, por favor espere...');
-    const pdfWorker = html2pdf().set(opciones).from(editor);
-    
-    if (navigator.canShare) {
-      const pdfBlob = await pdfWorker.outputPdf('blob');
-      const archivo = new File([pdfBlob], opciones.filename, { type: "application/pdf" });
-      if (navigator.canShare({ files: [archivo] })) {
-        await navigator.share({
-          files: [archivo],
-          title: `Parte Diario #${numeroParte}`,
-          text: 'Se adjunta el parte diario correspondiente de Constructora Pablo Romero.'
-        });
-        toast('✓ Compartido exitosamente');
-      } else {
-        await pdfWorker.save();
-        toast('✓ PDF descargado');
-      }
+    toast('Generando documento PDF, por favor espere...');
+    const pdfBlob = await html2pdf().set(opciones).from(printDiv).outputPdf('blob');
+    const archivo = new File([pdfBlob], opciones.filename, { type: "application/pdf" });
+
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      await navigator.share({
+        files: [archivo],
+        title: `Parte Diario #${data.parte_num}`,
+        text: 'Se adjunta el parte diario correspondiente de Constructora Pablo Romero.'
+      });
+      toast('✓ Documento compartido exitosamente');
     } else {
-      await pdfWorker.save();
+      await html2pdf().set(opciones).from(printDiv).save();
       toast('✓ PDF descargado');
     }
   } catch (error) {
@@ -562,9 +690,6 @@ async function exportarYCompartirPDF() {
     toast('Error al generar el documento PDF');
   } finally {
     btnGroup.style.display = 'flex';
-    editor.style.position = prevPosition;
-    editor.style.overflow = prevOverflow;
-    editor.style.height = prevHeight;
   }
 }
 
@@ -590,8 +715,8 @@ function toggleCard(id){ document.getElementById(id).classList.toggle('collapsed
 // ══════════ DYNAMIC ROWS ══════════
 const DYN_CONFIG = {
   instalaciones:{ cont:'instalaciones-rows', f:[{l:'Desc/Diámetro',t:'text'},{l:'Cant',t:'number',h:1},{l:'Und',t:'select',o:['m','u','lote'],h:1},{l:'Sector',t:'text'}] },
-  personal:{ cont:'personal-rows', f:[{l:'Nombre',t:'text'},{l:'Función',t:'select',o:['OPERARIO','ENCARGADO','OTRO']},{l:'Estado',t:'select',o:['Presente','Ausente']}] },
-  equipos:{ cont:'equipos-rows', f:[{l:'Cód',t:'text',h:1},{l:'Desc',t:'text',h:1},{l:'Hs',t:'number',h:1},{l:'Estado',t:'select',o:['Operativo','En falla'],h:1}] },
+  personal:{ cont:'personal-rows', f:[{l:'Nombre',t:'text'},{l:'Función',t:'select',o:['ENCARGADO','CAPATAZ','MAQUINISTA','OPERARIO','OTRO'],h:1},{l:'Estado',t:'select',o:['Presente','Ausente'],h:1},{l:'Empresa',t:'text',v:'Constructora Pablo Romero'}] },
+  equipos:{ cont:'equipos-rows', f:[{l:'Equipo / Cód',t:'text',h:1},{l:'Descripción',t:'text',h:1},{l:'Hs',t:'number',h:1},{l:'Estado / Obs.',t:'text',h:1}] },
   usado:{ cont:'usado-rows', f:[{l:'Material',t:'text'},{l:'Cant',t:'number',h:1},{l:'Und',t:'select',o:['m','u'],h:1}] },
   necesidades:{ cont:'necesidades-rows', f:[{l:'Desc',t:'text'},{l:'Cant',t:'number',h:1},{l:'Fecha',t:'date',h:1}] },
   seh:{ cont:'seh-rows', f:[{l:'Req',t:'text'},{l:'Cant',t:'number',h:1},{l:'Fecha',t:'date',h:1}] }
@@ -603,7 +728,7 @@ function addDynRow(n, v){
     const el=f.t==='select'?document.createElement('select'):document.createElement('input');
     el.className=f.t==='select'?'select':'input'; if(f.t!=='select')el.type=f.t;
     if(f.o) f.o.forEach(o=>el.innerHTML+=`<option value="${o}">${o}</option>`);
-    if(v) el.value=v[i];
+    if(v) el.value=v[i]; else if(f.v) el.value=f.v; // Aplicar valor por defecto si existe (ej. Empresa)
     el.onchange=()=>{if(n==='usado')updateStock(); setDirty(true);};
     const wrap=document.createElement('div'); wrap.style.marginBottom='8px';
     wrap.innerHTML=`<div class="dyn-row-label">${f.l}</div>`; wrap.appendChild(el); d.appendChild(wrap);
@@ -620,6 +745,21 @@ function getDynData(n){
 function clearDyn(n){ document.getElementById(DYN_CONFIG[n].cont).innerHTML=''; }
 
 // ══════════ STOCK Y AUSENTES ══════════
+function detectDiam(desc) {
+  const s = (desc||'').replace(/[^0-9]/g,' ');
+  if(/\b125\b/.test(s)) return '125';
+  if(/\b90\b/.test(s)) return '90';
+  if(/\b63\b/.test(s)) return '63';
+  if(/\b50\b/.test(s)) return '50';
+  return null;
+}
+
+function buildUsadoMap(){
+  const map={};
+  getDynData('usado').forEach(r=>{ const desc=(r[0]||'').trim(); const qty=parseFloat(r[1])||0; if(desc&&qty) map[desc]=(map[desc]||0)+qty; });
+  return map;
+}
+
 function addStockRowUI(d='', a=0, u='m'){ stockItems.push({desc:d, stockAnt:a, unidad:u}); updateStockUI(); }
 function updateStockUI(){
   const cont=document.getElementById('stock-display'); cont.innerHTML='';
@@ -635,18 +775,41 @@ function selWeather(el,v){ document.querySelectorAll('.weather-opt').forEach(b=>
 
 // ══════════ DATOS ══════════
 function collectData(){
+  const usadoMap = buildUsadoMap();
+  // Transformar el stock para guardar los valores calculados y que el PDF los imprima correctamente
+  const stockData = stockItems.map(s => {
+    const diam = detectDiam(s.desc);
+    let usado = 0;
+    Object.entries(usadoMap).forEach(([k,v]) => { 
+      if(detectDiam(k)===diam && diam) usado+=v; 
+      else if(!diam && k.toLowerCase()===s.desc.toLowerCase()) usado+=v; 
+    });
+    return { desc: s.desc, stockAnt: s.stockAnt, usadoHoy: usado, stockActual: s.stockAnt - usado, unidad: s.unidad };
+  });
+
   return {
     id: currentId||Date.now(), obra_id: activeObraId,
-    parte_num: document.getElementById('parte_num').value, fecha: document.getElementById('parte_fecha').value,
-    obra: document.getElementById('parte_obra').value, responsable: document.getElementById('parte_responsable').value,
-    estado: document.getElementById('parte_estado').value, tareas_desc: document.getElementById('tareas_desc').value,
-    instalaciones: getDynData('instalaciones'), personal: getDynData('personal'),
-    hs_trabajadas: document.getElementById('hs_trabajadas').value, ausentes: [...ausentes],
-    equipos: getDynData('equipos'), stock: stockItems, usado: getDynData('usado'),
-    necesidades: getDynData('necesidades'), seh: getDynData('seh'),
-    estado_tiempo: document.getElementById('estado_tiempo').value, tiempo_obs: document.getElementById('tiempo_obs').value,
-    obrador_desc: document.getElementById('obrador_desc').value, observaciones: document.getElementById('observaciones').value,
-    firma_responsable: document.getElementById('firma_responsable').value, firma_receptor: document.getElementById('firma_receptor').value,
+    parte_num: document.getElementById('parte_num').value, 
+    fecha: document.getElementById('parte_fecha').value,
+    obra: document.getElementById('parte_obra').value, 
+    responsable: document.getElementById('parte_responsable').value,
+    estado: document.getElementById('parte_estado').value, 
+    tareas_desc: document.getElementById('tareas_desc').value,
+    instalaciones: getDynData('instalaciones'), 
+    personal: getDynData('personal'),
+    hs_trabajadas: document.getElementById('hs_trabajadas').value, 
+    ausentes: [...ausentes],
+    equipos: getDynData('equipos'), 
+    stock: stockData, 
+    usado: getDynData('usado'),
+    necesidades: getDynData('necesidades'), 
+    seh: getDynData('seh'),
+    estado_tiempo: document.getElementById('estado_tiempo').value, 
+    tiempo_obs: document.getElementById('tiempo_obs').value,
+    obrador_desc: document.getElementById('obrador_desc').value, 
+    observaciones: document.getElementById('observaciones').value,
+    firma_responsable: document.getElementById('firma_responsable').value, 
+    firma_receptor: document.getElementById('firma_receptor').value,
     fecha_recepcion: document.getElementById('fecha_recepcion').value
   };
 }
@@ -695,7 +858,8 @@ function loadData(id){
   const d = partes.find(x=>x.id===id); if(!d)return; currentId=d.id;
   ['parte_num','parte_fecha','parte_obra','parte_responsable','parte_estado','tareas_desc','hs_trabajadas','tiempo_obs','obrador_desc','observaciones','firma_responsable','firma_receptor','fecha_recepcion','estado_tiempo'].forEach(k=>{if(document.getElementById(k))document.getElementById(k).value=d[k]||'';});
   ['instalaciones','personal','equipos','usado','necesidades','seh'].forEach(n=>{ clearDyn(n); (d[n]||[]).forEach(r=>addDynRow(n,r)); });
-  stockItems=d.stock||[]; updateStockUI(); goScreen('editor');
+  stockItems = (d.stock||[]).map(s => ({ desc: s.desc, stockAnt: s.stockAnt || 0, unidad: s.unidad || 'm' }));
+  updateStockUI(); goScreen('editor');
 }
 
 async function deleteP(id){
@@ -708,7 +872,7 @@ async function deleteP(id){
   };
 }
 
-// ══════════ AVANCE DE OBRA COMPLETADO ══════════
+// ══════════ AVANCE DE OBRA ══════════
 function buildAvance(){
   const acum={'50':0,'63':0,'90':0,'125':0};
   const detalles=[];
@@ -716,13 +880,7 @@ function buildAvance(){
   partes.forEach(p=>{
     const hoy={'50':0,'63':0,'90':0,'125':0};
     (p.instalaciones||[]).forEach(row=>{
-      const desc=(row[0]||'').replace(/[^0-9]/g,' ');
-      let diam=null;
-      if(/\b125\b/.test(desc)) diam='125';
-      else if(/\b90\b/.test(desc)) diam='90';
-      else if(/\b63\b/.test(desc)) diam='63';
-      else if(/\b50\b/.test(desc)) diam='50';
-      
+      const diam = detectDiam(row[0]);
       const qty=parseFloat(row[1])||0;
       if(diam&&qty){acum[diam]+=qty; hoy[diam]+=qty;}
     });
@@ -757,7 +915,7 @@ function buildAvance(){
   </tr>`).join('');
 }
 
-// ══════════ LÓGICA DE CONFIGURACIÓN COMPLETADA ══════════
+// ══════════ CONFIGURACIÓN ══════════
 function addCfgCanieria(){ addCfgRowWith('','Cañería PEAD Ø ___mm',0,'#f5a623'); }
 
 function addCfgRowWith(key,label,total,color){
@@ -808,7 +966,7 @@ async function saveConfig(){
     const total=(div._getTotal&&div._getTotal())||0;
     const color=(div._getColor&&div._getColor())||'#f5a623';
     if(!label) return;
-    const diam=label.match(/\d+/) ? label.match(/\d+/)[0] : label.toLowerCase().replace(/\s+/g,'_').slice(0,20);
+    const diam = label.match(/\d+/) ? label.match(/\d+/)[0] : label.toLowerCase().replace(/\s+/g,'_').slice(0,20);
     newPrevistos[diam]={label,total,color};
   });
 
