@@ -21,9 +21,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:15px}
+html,body{height:100%;overflow-x:hidden;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:15px}
 
-/* ── LAYOUT ── */
 .app{display:flex;flex-direction:column;height:100%;height:100dvh}
 .app-header{
   height:var(--header-h);flex-shrink:0;
@@ -52,7 +51,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 16px calc(var(--nav-h) + var(--safe-bottom) + 16px);display:none}
 .screen.active{display:block}
 
-/* ── BOTTOM NAV ── */
 .bottom-nav{
   height:calc(var(--nav-h) + var(--safe-bottom)); padding-bottom:var(--safe-bottom);
   background:var(--surface); border-top:1px solid var(--border);
@@ -68,7 +66,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .nav-btn.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 3px 3px}
 .nav-icon{font-size:22px;line-height:1}
 
-/* ── COMPONENTES GLOBALES ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
 .card-header{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .card-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
@@ -410,7 +407,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <div id="toast"></div>
 
 <script>
-// ══════════ LÓGICA BASE Y MÚLTIPLES OBRAS ══════════
 const DB_NAME = 'ParteDiarioDB';
 const DB_VER  = 1;
 let db;
@@ -508,12 +504,10 @@ async function cargarDatosObraActiva(id) {
   if(currentScreen === 'config') loadConfigPanel();
 }
 
-// ══════════ GENERACIÓN DE DOCUMENTO Y PDF ══════════
 function generarTemplatePDF(d) {
-  // Calculo de Avance Acumulado para el PDF
   const acum = {'50':0,'63':0,'90':0,'125':0};
   partes.forEach(p => {
-    if (p.id === d.id) return; // No sumar el actual dos veces si ya está guardado
+    if (p.id === d.id) return; 
     (p.instalaciones||[]).forEach(r => {
       const diam = detectDiam(r[0]);
       if(diam && r[1]) acum[diam] += parseFloat(r[1]);
@@ -528,7 +522,6 @@ function generarTemplatePDF(d) {
   
   return `
     <div style="font-family: 'Barlow', Arial, sans-serif; color: #000; width: 100%; max-width: 800px; padding: 20px; box-sizing: border-box; background: white; font-size: 12px;">
-      
       <table style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
         <tr>
           <td style="width: 60px;">
@@ -654,18 +647,23 @@ async function exportarYCompartirPDF() {
   const data = collectData();
   const htmlTemplate = generarTemplatePDF(data);
 
-  // Crear un contenedor invisible en memoria para que html2pdf lo procese como documento
   const printDiv = document.createElement('div');
   printDiv.innerHTML = htmlTemplate;
+  // Ajuste fundamental para que la librería no genere el documento en blanco:
+  // Se inserta en el DOM pero se oculta fuera de la vista del usuario.
+  printDiv.style.position = 'absolute';
+  printDiv.style.left = '-9999px';
+  printDiv.style.top = '0';
+  document.body.appendChild(printDiv);
 
   const btnGroup = document.getElementById('botones-accion');
-  btnGroup.style.display = 'none';
+  if(btnGroup) btnGroup.style.display = 'none';
 
   const opciones = {
     margin: [10, 10, 10, 10],
     filename: `Parte_Diario_${data.parte_num||'S_N'}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
@@ -689,11 +687,11 @@ async function exportarYCompartirPDF() {
     console.error(error);
     toast('Error al generar el documento PDF');
   } finally {
-    btnGroup.style.display = 'flex';
+    if(btnGroup) btnGroup.style.display = 'flex';
+    document.body.removeChild(printDiv); // Se limpia el documento tras finalizar
   }
 }
 
-// ══════════ UTILIDADES ══════════
 function today(){ return new Date().toISOString().slice(0,10); }
 function fmtDate(s){ if(!s)return'—'; const[y,m,d]=s.split('-'); return`${d}/${m}/${y}`; }
 function setDirty(v){ document.getElementById('status-dot').className = 'status-dot '+(v?'dirty':'saved'); }
@@ -712,7 +710,6 @@ function goScreen(name){
 }
 function toggleCard(id){ document.getElementById(id).classList.toggle('collapsed'); }
 
-// ══════════ DYNAMIC ROWS ══════════
 const DYN_CONFIG = {
   instalaciones:{ cont:'instalaciones-rows', f:[{l:'Desc/Diámetro',t:'text'},{l:'Cant',t:'number',h:1},{l:'Und',t:'select',o:['m','u','lote'],h:1},{l:'Sector',t:'text'}] },
   personal:{ cont:'personal-rows', f:[{l:'Nombre',t:'text'},{l:'Función',t:'select',o:['ENCARGADO','CAPATAZ','MAQUINISTA','OPERARIO','OTRO'],h:1},{l:'Estado',t:'select',o:['Presente','Ausente'],h:1},{l:'Empresa',t:'text',v:'Constructora Pablo Romero'}] },
@@ -728,7 +725,7 @@ function addDynRow(n, v){
     const el=f.t==='select'?document.createElement('select'):document.createElement('input');
     el.className=f.t==='select'?'select':'input'; if(f.t!=='select')el.type=f.t;
     if(f.o) f.o.forEach(o=>el.innerHTML+=`<option value="${o}">${o}</option>`);
-    if(v) el.value=v[i]; else if(f.v) el.value=f.v; // Aplicar valor por defecto si existe (ej. Empresa)
+    if(v) el.value=v[i]; else if(f.v) el.value=f.v; 
     el.onchange=()=>{if(n==='usado')updateStock(); setDirty(true);};
     const wrap=document.createElement('div'); wrap.style.marginBottom='8px';
     wrap.innerHTML=`<div class="dyn-row-label">${f.l}</div>`; wrap.appendChild(el); d.appendChild(wrap);
@@ -744,7 +741,6 @@ function getDynData(n){
 }
 function clearDyn(n){ document.getElementById(DYN_CONFIG[n].cont).innerHTML=''; }
 
-// ══════════ STOCK Y AUSENTES ══════════
 function detectDiam(desc) {
   const s = (desc||'').replace(/[^0-9]/g,' ');
   if(/\b125\b/.test(s)) return '125';
@@ -773,10 +769,8 @@ function updateStock(){ updateStockUI(); setDirty(true); }
 function addAusente(){ const i=document.getElementById('ausente-input'); if(i.value){ ausentes.push(i.value); i.value=''; document.getElementById('ausentes-list').innerHTML=ausentes.map((a,idx)=>`<div class="absent-tag">${a}<button onclick="ausentes.splice(${idx},1);this.parentElement.remove()">×</button></div>`).join(''); setDirty(true);} }
 function selWeather(el,v){ document.querySelectorAll('.weather-opt').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); document.getElementById('estado_tiempo').value=v; setDirty(true); }
 
-// ══════════ DATOS ══════════
 function collectData(){
   const usadoMap = buildUsadoMap();
-  // Transformar el stock para guardar los valores calculados y que el PDF los imprima correctamente
   const stockData = stockItems.map(s => {
     const diam = detectDiam(s.desc);
     let usado = 0;
@@ -843,7 +837,6 @@ function newParteFromLast(){
   toast('Creado desde el registro anterior');
 }
 
-// ══════════ HISTORIAL ══════════
 function buildHistorial(){
   document.getElementById('stat-total').textContent=partes.length;
   document.getElementById('partes-list').innerHTML=partes.map(p=>`
@@ -872,7 +865,6 @@ async function deleteP(id){
   };
 }
 
-// ══════════ AVANCE DE OBRA ══════════
 function buildAvance(){
   const acum={'50':0,'63':0,'90':0,'125':0};
   const detalles=[];
@@ -915,7 +907,6 @@ function buildAvance(){
   </tr>`).join('');
 }
 
-// ══════════ CONFIGURACIÓN ══════════
 function addCfgCanieria(){ addCfgRowWith('','Cañería PEAD Ø ___mm',0,'#f5a623'); }
 
 function addCfgRowWith(key,label,total,color){
